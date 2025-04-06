@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Chat Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Reset & Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #5563de;
+      padding: 20px;
+      text-align: center;
+      color: #fff;
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+    /* Main container for chat panels */
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      overflow: hidden;
+    }
+    /* Left Panel: Retrieval Results */
+    .retrieval-panel {
+      background: #fff;
+      width: 35%;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+    }
+    .retrieval-header {
+      padding: 15px;
+      background: #f0f0f0;
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: bold;
+    }
+    .retrieval-results {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+    /* Right Panel: Main AI Response */
+    .main-panel {
+      background: #fff;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .main-header {
+      padding: 15px;
+      background: #f0f0f0;
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: bold;
+    }
+    .main-result {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+    /* Chat input area at the bottom */
+    .chat-input-container {
+      display: flex;
+      flex-direction: column;
+      padding: 15px;
+      background: #fff;
+      border-top: 1px solid #e0e0e0;
+    }
+    .chat-input-row {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .chat-input-row input[type="text"],
+    .chat-input-row input[type="number"] {
+      flex: 1;
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1em;
+      margin-right: 10px;
+    }
+    .chat-input-row input[type="number"] {
+      max-width: 100px;
+      margin-right: 0;
+    }
+    .chat-input-container button {
+      background: #5563de;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      font-size: 1em;
+      align-self: flex-end;
+    }
+    .chat-input-container button:hover {
+      background: #434bb8;
+    }
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .chat-container {
+        flex-direction: column;
+      }
+      .retrieval-panel {
+        width: 100%;
+        height: 40%;
+        border-right: none;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .main-panel {
+        height: 60%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>AI Chat Dashboard</header>
+  <div class="chat-container">
+    <!-- Left Panel: Retrieval Results -->
+    <div class="retrieval-panel">
+      <div class="retrieval-header">Retrieval Results</div>
+      <div class="retrieval-results" id="retrievalResults">
+        <!-- Retrieval results will be appended here -->
+      </div>
+    </div>
+    <!-- Right Panel: Main AI Result -->
+    <div class="main-panel">
+      <div class="main-header">AI Response</div>
+      <div class="main-result" id="mainResult">
+        <!-- Main AI response will be displayed here -->
+      </div>
+    </div>
+  </div>
+  <!-- Chat input area -->
+  <div class="chat-input-container">
+    <div class="chat-input-row">
+      <input type="text" id="userInput" placeholder="Type your message here..." />
+      <input type="number" id="topKInput" placeholder="Top K" min="1" value="3" />
+    </div>
+    <button id="sendButton">Send</button>
+  </div>
+  <script>
+    // Event listeners for chat input
+    document.getElementById('sendButton').addEventListener('click', sendChat);
+    document.getElementById('userInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') sendChat();
+    });
+
+    async function sendChat() {
+      const inputField = document.getElementById('userInput');
+      const topKField = document.getElementById('topKInput');
+      const message = inputField.value.trim();
+      const top_k = parseInt(topKField.value) || 3;
+      if (!message) return;
+      
+      // Append the user's message to the main result area
+      appendMessage('You: ' + message, 'main');
+
+      // Clear the input
+      inputField.value = '';
+
+      try {
+        // Call your chat API endpoint
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query: message, top_k: top_k })
+        });
+        if (!response.ok) {
+          throw new Error('API call failed with status ' + response.status);
+        }
+        const data = await response.json();
+        
+        // Data contains retrieval (list) and main (string)
+        if (data.retrieval) {
+          // Clear previous retrieval results
+          document.getElementById('retrievalResults').innerHTML = '';
+          data.retrieval.forEach(result => {
+            appendMessage(result, 'retrieval');
+          });
+        }
+        if (data.main) {
+          appendMessage(data.main, 'main');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        appendMessage('Error: ' + error.message, 'main');
+      }
+    }
+
+    function appendMessage(message, panel) {
+      let panelId = panel === 'retrieval' ? 'retrievalResults' : 'mainResult';
+      const container = document.getElementById(panelId);
+      const messageElem = document.createElement('div');
+      messageElem.style.marginBottom = '10px';
+      messageElem.style.padding = '10px';
+      messageElem.style.background = '#f0f0f0';
+      messageElem.style.borderRadius = '4px';
+      messageElem.textContent = message;
+      container.appendChild(messageElem);
+      // Auto-scroll to the bottom
+      container.scrollTop = container.scrollHeight;
+    }
+  </script>
+</body>
+</html>

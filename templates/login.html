@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dentist Project - JWT Login</title>
+  <style>
+    /* Overall page styling */
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #74ABE2, #5563DE);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    /* Centered card container */
+    .login-card {
+      background: #fff;
+      padding: 40px 50px;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      width: 350px;
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    /* Form styling */
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-weight: 600;
+      margin-bottom: 5px;
+      text-align: left;
+      color: #555;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    input[type="submit"] {
+      background: #5563DE;
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s ease;
+    }
+
+    input[type="submit"]:hover {
+      background: #434bb8;
+    }
+
+    p {
+      margin-top: 15px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    code {
+      background: #f4f4f4;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <h2>Dentist Project</h2>
+    <form action="/token" method="post">
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" placeholder="Enter your username" required>
+
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" placeholder="Enter your password" required>
+
+      <input type="submit" value="Login">
+    </form>
+    <p>Use token to access <code>/dashboard</code></p>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.querySelector('form');
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(form);
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.access_token) {
+              // Save token in a cookie; note: "Bearer " prefix is optional based on your backend
+              document.cookie = "access_token=Bearer " + data.access_token + "; path=/;";
+              // Redirect to dashboard
+              window.location.href = '/dashboard';
+            } else {
+              alert("Token not received. Please try again.");
+            }
+          } else {
+            const errorData = await response.json();
+            alert("Login failed: " + (errorData.detail || "Unknown error"));
+          }
+        } catch (error) {
+          alert("An error occurred: " + error);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

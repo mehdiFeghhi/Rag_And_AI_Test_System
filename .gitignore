@@ -1,0 +1,105 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+site-packages/
+pip-selfcheck.json
+
+# --- Virtual Environment ---
+# (Usually named venv, .venv, or env - adjust as needed)
+.venv/
+venv/
+env/
+
+# --- Package Management ---
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+*.egg
+*.whl
+
+# --- FastAPI Specific ---
+# (Generated files, local test data)
+*.db
+*.sqlite
+storage/
+
+# --- Testing ---
+.coverage
+htmlcov/
+.pytest_cache/
+test-reports/
+tests/__pycache__/
+debug.log
+
+# --- Environment Files ---
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+
+# --- IDE & Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+*.kdev4
+.ropeproject
+
+# --- Logs & Databases ---
+*.log
+*.sql
+*.sqlite3
+*.db-journal
+
+# --- Local Development ---
+settings/local.py
+docker-compose.override.yml
+
+# --- Static Files ---
+/static_collected/
+/media/
+
+# --- Node.js (if frontend exists) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Jupyter Notebooks ---
+.ipynb_checkpoints
+
+# --- OS Generated ---
+.DS_Store
+.DS_Store?
+*.swp
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Mypy & Linting ---
+.mypy_cache/
+.ruff_cache/
+
+# --- Profiling ---
+*.prof
+*.line_profiler
+
+# --- Documentation ---
+app_config.py
