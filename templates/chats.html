@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Chat Dashboard - Chat History</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Global Reset & Base Styles */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #e3f2fd; /* Very light blue background */
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #2196f3; /* Blue header */
+      color: #fff;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: center; /* Center items horizontally */
+      align-items: center;
+      margin-bottom: 2rem;
+      position: relative; /* For absolute positioning of nav */
+    }
+    header nav {
+      position: absolute;
+      left: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    header nav a {
+      color: #f8f9fa;
+      text-decoration: none;
+      margin-right: 1rem; /* Space between nav links */
+      font-weight: bold;
+      padding: 0.5rem 1rem;
+      border-radius: 0.25rem;
+      background-color: rgba(255, 255, 255, 0.15);
+      transition: background-color 0.3s ease;
+    }
+    header nav a:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+    header h1 {
+      font-size: 2rem;
+      margin: 0; /* Remove default margin */
+    }
+    .container {
+      flex: 1;
+      padding: 1rem;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .chat-history {
+      background: #fff;
+      border: 1px solid #bbdefb; /* Light blue border */
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+    }
+    .chat-item {
+      padding: 1rem;
+      border-bottom: 1px solid #e0f7fa; /* Very light blue border */
+      transition: background-color 0.2s ease-in-out;
+      display: grid;
+      grid-template-columns: 1fr auto auto; /* Query | Top K | Timestamp */
+      gap: 1rem;
+      align-items: center;
+    }
+    .chat-item:last-child {
+      border-bottom: none;
+    }
+    .chat-item:hover {
+      background-color: #f0f8ff; /* Lightest blue on hover */
+    }
+    .chat-item a {
+      color: #1976d2; /* Darker blue link color */
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .chat-item a:hover {
+      text-decoration: underline;
+    }
+    .chat-details {
+      font-size: 0.85rem;
+      color: #757575; /* Dark grey text color */
+    }
+    .no-chats {
+      color: #757575;
+      font-style: italic;
+      text-align: center;
+      padding: 1rem 0;
+    }
+    .loading-chats {
+      text-align: center;
+      color: #1976d2;
+      padding: 1rem 0;
+    }
+    .top-k {
+      font-size: 0.9rem;
+      color: #424242;
+      background-color: #e0f2f7; /* Light blue-grey background */
+      padding: 0.3rem 0.5rem;
+      border-radius: 0.3rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="/dashboard">New Chat</a>
+    </nav>
+    <h1>Chat History</h1>
+  </header>
+
+  <main class="container">
+    <div class="chat-history" id="chatHistory">
+      <p class="loading-chats">Loading your chats...</p>
+    </div>
+  </main>
+
+  <script>
+    // On page load, fetch all chats for the current user
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const response = await fetch('/chats');
+        if (!response.ok) {
+          throw new Error('Failed to load chats.');
+        }
+        const data = await response.json();
+        displayChats(data.chats);
+      } catch (error) {
+        document.getElementById('chatHistory').innerHTML = '<p class="error-message">Error: ' + error.message + '</p>';
+      }
+    });
+
+    function displayChats(chats) {
+      const container = document.getElementById('chatHistory');
+      container.innerHTML = '';
+      if (!chats || chats.length === 0) {
+        container.innerHTML = '<p class="no-chats">No chats found.</p>';
+        return;
+      }
+      chats.forEach(chat => {
+        const chatDiv = document.createElement('div');
+        chatDiv.classList.add('chat-item');
+        // Each item contains a link to the chat detail page, using the chat id as a path parameter.
+        const chatLink = document.createElement('a');
+        chatLink.href = `/chat_details_page/${chat.id}`;
+        chatLink.textContent = `Query: ${chat.query}`;
+
+        const topKSpan = document.createElement('span');
+        topKSpan.classList.add('top-k');
+        topKSpan.textContent = `Top K: ${chat.top_k}`;
+
+        const timestampDiv = document.createElement('div');
+        timestampDiv.classList.add('chat-details');
+        timestampDiv.textContent = new Date(chat.timestamp).toLocaleString();
+
+        chatDiv.appendChild(chatLink);
+        chatDiv.appendChild(topKSpan);
+        chatDiv.appendChild(timestampDiv);
+        container.appendChild(chatDiv);
+      });
+    }
+  </script>
+</body>
+</html>

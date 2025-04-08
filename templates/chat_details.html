@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Chat Dashboard - Chat Detail</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Global Reset & Base Styles */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #e3f2fd; /* Very light blue background */
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+    }
+    header {
+      background: #2196f3; /* Blue header */
+      color: #fff;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 2rem;
+      position: relative;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    }
+    header nav {
+      position: absolute;
+      left: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    header nav a {
+      color: #f8f9fa;
+      text-decoration: none;
+      margin-right: 1rem;
+      font-weight: bold;
+      padding: 0.6rem 1.2rem; /* Slightly larger padding */
+      border-radius: 0.3rem;
+      background-color: rgba(255, 255, 255, 0.15);
+      transition: background-color 0.3s ease;
+    }
+    header nav a:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+    header h1 {
+      font-size: 2.2rem; /* Slightly larger title */
+      margin: 0;
+    }
+    .container {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #bbdefb; /* Light blue border */
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      max-width: 960px;
+      margin: 0 auto;
+      overflow-y: auto;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+    }
+    .section {
+      margin-bottom: 1.8rem; /* Increased margin */
+      padding-bottom: 1.2rem; /* Increased padding */
+      border-bottom: 1px solid #e0f7fa; /* Very light blue border */
+    }
+    .section:last-child {
+      border-bottom: none;
+    }
+    .section h2 {
+      margin-top: 0;
+      margin-bottom: 1.2rem; /* Increased margin */
+      font-size: 1.7rem; /* Slightly larger heading */
+      color: #1976d2; /* Darker blue */
+      border-bottom: 2px solid #bbdefb; /* More prominent border */
+      padding-bottom: 0.5rem;
+    }
+    .message {
+      margin-bottom: 1rem; /* Increased margin */
+      padding: 1.2rem; /* Increased padding */
+      background: #f0f8ff; /* Lightest blue */
+      border: 1px solid #e0f2f7; /* Light blue-grey border */
+      border-radius: 0.4rem;
+      white-space: pre-wrap; /* Preserve formatting like newlines */
+      line-height: 1.6; /* Improved readability */
+    }
+    .back-link {
+      display: block;
+      margin-top: 1.5rem; /* Increased margin */
+      color: #1976d2;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s ease; /* Smooth transition for hover */
+    }
+    .back-link:hover {
+      text-decoration: underline;
+      color: #0d47a1; /* Darker blue on hover */
+    }
+    .loading-detail {
+      text-align: center;
+      color: #1976d2;
+      padding: 1.5rem 0;
+      font-size: 1.1rem;
+    }
+    .error-message {
+      color: #dc3545; /* Red color for error */
+      text-align: center;
+      padding: 1.5rem 0;
+      font-size: 1.1rem;
+    }
+    .no-results {
+      color: #757575;
+      font-style: italic;
+      padding-top: 0.5rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem;
+      }
+      header nav {
+        position: static;
+        transform: none;
+        margin-top: 1rem;
+      }
+      header nav a {
+        margin: 0 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+      }
+      header h1 {
+        font-size: 2rem;
+      }
+      .container {
+        padding: 1rem;
+      }
+      .section h2 {
+        font-size: 1.4rem;
+      }
+      .message {
+        padding: 1rem;
+        font-size: 0.95rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      header h1 {
+        font-size: 1.8rem;
+      }
+      header nav a {
+        font-size: 0.85rem;
+      }
+      .container {
+        padding: 0.8rem;
+      }
+      .section h2 {
+        font-size: 1.3rem;
+      }
+      .message {
+        padding: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="/dashboard">New Chat</a>
+      <a href="/chats_page">Chat History</a>
+    </nav>
+    <h1>Chat Detail</h1>
+  </header>
+
+  <main class="container" id="chatDetail">
+    <p class="loading-detail">Loading chat details...</p>
+  </main>
+
+  <a href="/chats_page" class="back-link">Back to Chat History</a>
+
+  <script>
+    async function loadChatDetail() {
+      const pathSegments = window.location.pathname.split('/');
+      const chatId = pathSegments[pathSegments.length - 1]; // Get the last segment of the path
+      if (!chatId) {
+        document.getElementById('chatDetail').innerHTML = '<p class="error-message">Error: No chat ID provided.</p>';
+        return;
+      }
+      try {
+        const response = await fetch(`/chat_retrive/${chatId}`);
+        if (!response.ok) {
+          throw new Error(`Failed to load chat detail. (${response.status})`);
+        }
+        const chat = await response.json();
+        displayChatDetail(chat);
+      } catch (error) {
+        document.getElementById('chatDetail').innerHTML = '<p class="error-message">Error: ' + error.message + '</p>';
+      }
+    }
+
+    function displayChatDetail(chat) {
+      const container = document.getElementById('chatDetail');
+      container.innerHTML = '';
+
+      // Display basic chat information
+      const infoDiv = document.createElement('div');
+      infoDiv.classList.add('section');
+      infoDiv.innerHTML = `<h2>Query</h2>
+        <div class="message">${chat.query}</div>
+        <h2>Timestamp</h2>
+        <div class="message">${new Date(chat.timestamp).toLocaleString()}</div>`;
+      container.appendChild(infoDiv);
+
+      // Display retrieval results
+      const retrievalDiv = document.createElement('div');
+      retrievalDiv.classList.add('section');
+      retrievalDiv.innerHTML = '<h2>Retrieval Results</h2>';
+      if (chat.retrieval_results && chat.retrieval_results.length > 0) {
+        chat.retrieval_results.forEach(result => {
+          const msg = document.createElement('div');
+          msg.classList.add('message');
+          msg.textContent = result;
+          retrievalDiv.appendChild(msg);
+        });
+      } else {
+        retrievalDiv.innerHTML += '<p class="no-results">No retrieval results.</p>';
+      }
+      container.appendChild(retrievalDiv);
+
+      // Display main AI response
+      const mainDiv = document.createElement('div');
+      mainDiv.classList.add('section');
+      mainDiv.innerHTML = '<h2>Main AI Response</h2>';
+      const mainMsg = document.createElement('div');
+      mainMsg.classList.add('message');
+      mainMsg.textContent = chat.main_result;
+      mainDiv.appendChild(mainMsg);
+      container.appendChild(mainDiv);
+    }
+
+    // Load chat details on page load
+    window.addEventListener('DOMContentLoaded', loadChatDetail);
+  </script>
+</body>
+</html>

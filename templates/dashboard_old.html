@@ -167,10 +167,14 @@
       const top_k = parseInt(topKField.value) || 3;
       if (!message) return;
       
-      // Append the user's message to the main result area
+      // Clear previous chat messages from both panels
+      document.getElementById('mainResult').innerHTML = '';
+      document.getElementById('retrievalResults').innerHTML = '';
+
+      // Append the user's message to the main panel
       appendMessage('You: ' + message, 'main');
 
-      // Clear the input
+      // Clear the input field
       inputField.value = '';
 
       try {
@@ -189,8 +193,6 @@
         
         // Data contains retrieval (list) and main (string)
         if (data.retrieval) {
-          // Clear previous retrieval results
-          document.getElementById('retrievalResults').innerHTML = '';
           data.retrieval.forEach(result => {
             appendMessage(result, 'retrieval');
           });
