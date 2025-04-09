@@ -1,9 +1,13 @@
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
+from retrieval import find_top_k_chunks, model, load_chunks_and_embeddings
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from contextlib import asynccontextmanager
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.status import HTTP_302_FOUND
 from pydantic import BaseModel
+from model import generate_chat_response
+
 from datetime import datetime, timezone
 # from fastapi.staticfiles import StaticFiles  # Import StaticFiles
 
@@ -11,6 +15,21 @@ from bson import ObjectId
 from db import chat_collection
 from security.admin import authenticate_admin
 from security.auth import create_access_token, get_current_user
+
+
+# Initialize placeholders
+main_chunks = None
+embedding_cache = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """App lifespan: load model and embeddings at startup."""
+    global main_chunks, embedding_cache
+    main_chunks, embedding_cache = load_chunks_and_embeddings()
+    if not main_chunks or not embedding_cache:
+        raise RuntimeError("Failed to load chunks or embeddings.")
+    yield  # Application is running
+    # Optional: Add teardown/cleanup logic here
 
 
 app = FastAPI()
@@ -53,38 +72,46 @@ async def chat_details_page(request: Request, chat_id: str, user: dict = Depends
 # Chat API Endpoint
 # ---------------------------
 
+
+
+
+class ChunkResponse(BaseModel):
+    content: str
+    metadata: dict = {}
+
+
 class ChatRequest(BaseModel):
     query: str
     top_k: int = 3  # Default number of retrieval results
 
+
 @app.post("/chat")
-async def chat_endpoint(chat: ChatRequest, user: dict = Depends(get_current_user)):
+async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_user)):
     """
-    AI Chat endpoint that accepts a query and a top_k parameter.
-    Returns:
-      - "retrieval": a list of fake retrieval results, repeated top_k times.
-      - "main": a fake main AI response.
+    Chat endpoint using real semantic retrieval and GPT-4 LLM generation.
     """
-    # Create a list of fake retrieval results based on top_k.
-    retrieval_results = [
-        f"Fake retrieval result {i+1} for query: '{chat.query}'"
-        for i in range(chat.top_k)
-    ]
+    try:
+        relevant_chunks = find_top_k_chunks(request.query, top_k=request.top_k)
+        retrieval_results = [chunk["content"] for chunk in relevant_chunks]
+
+        # 🔥 Generate a real LLM-based response
+        main_result = generate_chat_response(request.query, retrieval_results)
+
+        chat_doc = {
+            "username": user["username"],
+            "query": request.query,
+            "top_k": request.top_k,
+            "retrieval_results": retrieval_results,
+            "main_result": main_result,
+            "timestamp": datetime.now(timezone.utc)
+        }
+        await chat_collection.insert_one(chat_doc)
+
+        return {"retrieval": retrieval_results, "main": main_result}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
-    main_result = f"Fake main AI response for query: '{chat.query}'"
-
-        # Store the chat in MongoDB
-    chat_doc = {
-        "username": user["username"],
-        "query": chat.query,
-        "top_k": chat.top_k,
-        "retrieval_results": retrieval_results,
-        "main_result": main_result,
-        "timestamp": datetime.now(timezone.utc)  # Timezone-aware UTC datetime
-    }
-    await chat_collection.insert_one(chat_doc)
-
-    return {"retrieval": retrieval_results, "main": main_result}
 
 
 # GET endpoint to retrieve all chats for the current user
