@@ -90,13 +90,15 @@ async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_u
     """
     Chat endpoint using real semantic retrieval and GPT-4 LLM generation.
     """
+
     try:
         relevant_chunks = find_top_k_chunks(request.query, top_k=request.top_k)
-        retrieval_results = [chunk["content"] for chunk in relevant_chunks]
+        retrieval_results = [f"Retrieve_{i+1}: {chunk['content']}" for i, chunk in enumerate(relevant_chunks)]        
+        # print(retrieval_results)
 
         # 🔥 Generate a real LLM-based response
         main_result = generate_chat_response(request.query, retrieval_results)
-
+        # main_result = "Without Model: " + request.query
         chat_doc = {
             "username": user["username"],
             "query": request.query,
@@ -110,6 +112,7 @@ async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_u
         return {"retrieval": retrieval_results, "main": main_result}
 
     except Exception as e:
+        print("Why error!")
         raise HTTPException(status_code=500, detail=str(e))
     
 
