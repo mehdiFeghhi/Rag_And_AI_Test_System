@@ -1,5 +1,5 @@
 from langchain_openai import ChatOpenAI  # pip install -U langchain_openai
-
+from typing import List
 from app_config import API_KEY
 
 # Initialize OpenAI with your API key
@@ -8,7 +8,7 @@ from app_config import API_KEY
 DEFAULT_MODEL = "gpt-4o-mini"
 
 
-def generate_chat_response(user_query: str, retrieved_chunks: list[str], model_name: str = DEFAULT_MODEL) -> str:
+def generate_chat_response(user_query: str, retrieved_chunks: List[str], model_name: str = DEFAULT_MODEL) -> str:
     """
     Generates a main response using OpenAI's ChatGPT based on the user query and retrieval context.
 
