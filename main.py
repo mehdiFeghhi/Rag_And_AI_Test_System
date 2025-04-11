@@ -95,7 +95,7 @@ async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_u
         
         if request.top_k > 0:
             print(request.top_k)
-            relevant_chunks = find_top_k_chunks(request.query, top_k=request.top_k,request.embeder_name)
+            relevant_chunks = find_top_k_chunks(request.query, top_k=request.top_k,embeder_name=request.embeder_name)
         else :
             relevant_chunks = []
         retrieval_results = [f"<strong>Retrieve_{i+1}</strong>: {chunk['content']}" for i, chunk in enumerate(relevant_chunks)]        
