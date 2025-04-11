@@ -1,4 +1,3 @@
-from langchain_openai import ChatOpenAI  # pip install -U langchain_openai
 from typing import List
 from app_config import API_KEY
 from utils import preprocess_md_to_html,check_persian

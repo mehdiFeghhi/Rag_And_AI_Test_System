@@ -96,16 +96,26 @@
       margin-bottom: 10px;
     }
     .chat-input-row input[type="text"],
-    .chat-input-row input[type="number"] {
-      flex: 1;
+    .chat-input-row input[type="number"],
+    .chat-input-row select {
       padding: 12px 15px;
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 1em;
       margin-right: 10px;
     }
+    /* Specific styling for embeder selector to be smaller */
+    #embederSelect {
+      flex: 0 0 auto;
+      width: auto;
+      padding: 8px 10px;
+      font-size: 0.9em;
+    }
+    .chat-input-row input[type="text"] {
+      flex: 1;
+    }
     .chat-input-row input[type="number"] {
-      max-width: 100px;
+      flex: 0 0 100px;
       margin-right: 0;
     }
     .chat-input-container button {
@@ -197,7 +207,7 @@
       flex-shrink: 0;
     }
     .avatar.user {
-      background-color:#6c757d;
+      background-color: #6c757d;
     }
     .avatar.model {
       background-color: #28a745;
@@ -214,7 +224,7 @@
     }
     .message-row:not(.user) .message-content {
       border-radius: 0 10px 10px 10px;
-      background-color:#cef5d7;
+      background-color: #cef5d7;
     }
   </style>
 </head>
@@ -237,6 +247,15 @@
     </div>
   </div>
   <div class="chat-input-container">
+    <!-- New dropdown for embeder choice -->
+    <div class="chat-input-row">
+      <select id="embederSelect">
+        <option value="">Select embedder (default is GPT large)</option>
+        <option value="local">local</option>
+        <option value="GPT_large">GPT large</option>
+        <option value="GPT_small">GPT small</option>
+      </select>
+    </div>
     <div class="chat-input-row">
       <input type="text" id="userInput" placeholder="Type your message here..." />
       <input type="number" id="topKInput" placeholder="Top K" min="0" value="3" />
@@ -254,8 +273,12 @@
     async function sendChat() {
       const inputField = document.getElementById('userInput');
       const topKField = document.getElementById('topKInput');
+      const embedderSelect = document.getElementById('embederSelect');
       const message = inputField.value.trim();
       const top_k = Math.max(0, topKField.value === '' ? 0 : parseInt(topKField.value));
+      // If embedder is not selected, default to "GPT large"
+      const embeder_name = embedderSelect.value.trim() || "GPT_large";
+
       if (!message) return;
 
       // Clear previous chat messages
@@ -271,7 +294,7 @@
         const response = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: message, top_k })
+          body: JSON.stringify({ query: message, top_k, embeder_name })
         });
         if (!response.ok) throw new Error('API call failed with status ' + response.status);
         const data = await response.json();

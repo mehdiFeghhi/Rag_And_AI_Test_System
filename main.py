@@ -1,12 +1,12 @@
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
-from retrieval import find_top_k_chunks, model, load_chunks_and_embeddings
+from retrieval import find_top_k_chunks, load_chunks_and_embeddings
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.status import HTTP_302_FOUND
 from pydantic import BaseModel
-from model import generate_chat_response
+from AI import generate_chat_response
 
 from datetime import datetime, timezone
 # from fastapi.staticfiles import StaticFiles  # Import StaticFiles
@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     global main_chunks, embedding_cache
     main_chunks, embedding_cache = load_chunks_and_embeddings()
     if not main_chunks or not embedding_cache:
-        raise RuntimeError("Failed to load chunks or embeddings.")
+        raise RuntimeError("Failed to load chunks or local embeddings.")
     yield  # Application is running
     # Optional: Add teardown/cleanup logic here
 
@@ -83,7 +83,7 @@ class ChunkResponse(BaseModel):
 class ChatRequest(BaseModel):
     query: str
     top_k: int = 3  # Default number of retrieval results
-
+    embeder_name: str = "GPT_large"
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_user)):
@@ -95,7 +95,7 @@ async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_u
         
         if request.top_k > 0:
             print(request.top_k)
-            relevant_chunks = find_top_k_chunks(request.query, top_k=request.top_k)
+            relevant_chunks = find_top_k_chunks(request.query, top_k=request.top_k,request.embeder_name)
         else :
             relevant_chunks = []
         retrieval_results = [f"<strong>Retrieve_{i+1}</strong>: {chunk['content']}" for i, chunk in enumerate(relevant_chunks)]        

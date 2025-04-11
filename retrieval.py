@@ -1,100 +1,154 @@
 import os
+import json
 import pickle
 import numpy as np
 import faiss
 from typing import List, Tuple, Optional
 from sentence_transformers import SentenceTransformer
-from app_config import CACHE_FILE, NAME_MODEL_EMBEDDING
+from app_config import  NAME_MODEL_EMBEDDING, CACHE_JSON_LOCAL_MODEL, CACHE_JSON_GPT_LARGE, CACHE_JSON_GPT_SMALL
+import openai
 
 
-def load_chunks_and_embeddings(filename: str = CACHE_FILE) -> Tuple[Optional[List[dict]], Optional[dict]]:
+
+def load_chunks_and_embeddings(model_name: str = "Local") -> dict:
+
+    if model_name == "Local":
+        filename = CACHE_JSON_LOCAL_MODEL
+    elif model_name == "GPT_large":
+        filename = CACHE_JSON_GPT_LARGE
+    elif model_name == "GPT_small":
+        filename = CACHE_JSON_GPT_SMALL
+    else:
+        raise ValueError("Invalid name parameter. Must be 'Local', 'GPT_small', or 'GPT_large'.")
+    
+    with open(filename, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+
+def get_gpt_embedding(texts, name):
     """
-    Load text chunks and their embeddings from cache file.
+    Compute embeddings for the provided texts based on the specified engine 'name'.
 
-    Args:
-        filename (str): Path to the cache file.
+    Parameters:
+      texts (list or str): Input text or list of texts for embedding.
+      name (str): Determines the embedding method:
+         - "Local" to use a local model (expects 'local_model' to be defined in the environment).
+         - "GPT_small" to use the OpenAI API with the "text-embedding-3-small" model.
+         - "GPT_large" to use the OpenAI API with the "text-embedding-3-large" model.
 
     Returns:
-        Tuple: A tuple containing a list of chunks and a dictionary of embeddings,
-               or (None, None) if the file does not exist.
-    """
-    if not os.path.exists(filename):
-        return None, None
-
-    with open(filename, "rb") as f:
-        data = pickle.load(f)
-    return data["chunks"], data["embeddings"]
-
-
-def split_into_subchunks(text: str, chunk_size: int = 100, overlap: int = 30) -> List[str]:
-    """
-    Split a text into overlapping subchunks.
-
-    Args:
-        text (str): Input text to be split.
-        chunk_size (int): Number of words per chunk.
-        overlap (int): Number of overlapping words.
-
-    Returns:
-        List[str]: A list of subchunk strings.
-    """
-    words = text.split()
-    step = chunk_size - overlap
-    return [" ".join(words[i:i + chunk_size]) for i in range(0, len(words), step)]
-
-
-def find_top_k_chunks(query: str, top_k: int = 3) -> List[dict]:
-    """
-    Retrieve the top-k most relevant chunks for a given query.
-
-    Args:
-        query (str): Input query string.
-        top_k (int): Number of top relevant chunks to return.
-
-    Returns:
-        List[dict]: List of top relevant chunk dictionaries.
-
+      Embeddings computed either by a local model or from the API response.
+      
     Raises:
-        ValueError: If no chunks or embeddings are loaded.
+      ValueError: If 'name' is not one of "Local", "GPT_small", or "GPT_large".
     """
-    if main_chunks is None or embedding_cache is None:
-        raise ValueError("No chunks or embeddings found. Please load them first.")
-
-    query_embedding = model.encode(query)
-    query_embedding_np = np.array([query_embedding], dtype=np.float32)
-    faiss.normalize_L2(query_embedding_np)
-
-    scored_chunks = []
-
-    for chunk in main_chunks:
-        content = chunk["content"]
-
-        if content in embedding_cache:
-            subchunks = embedding_cache[content]["subchunks"]
-            subchunk_embeddings = embedding_cache[content]["embeddings"]
-        else:
-            subchunks = split_into_subchunks(content)
-            subchunk_embeddings = model.encode(subchunks)
-            embedding_cache[content] = {
-                "subchunks": subchunks,
-                "embeddings": subchunk_embeddings
-            }
-
-        subchunk_embeddings_np = np.array(subchunk_embeddings, dtype=np.float32)
-        faiss.normalize_L2(subchunk_embeddings_np)
-
-        index = faiss.IndexFlatIP(subchunk_embeddings_np.shape[1])
-        index.add(subchunk_embeddings_np)
-
-        scores, _ = index.search(query_embedding_np, 1)
-        max_score = scores[0][0]
-
-        scored_chunks.append((max_score, chunk))
-
-    scored_chunks.sort(key=lambda x: x[0], reverse=True)
-    return [chunk for _, chunk in scored_chunks[:top_k]]
+    # Use the local model if the name is "Local"
+    if name == "Local":
+        # Ensure that 'local_model' is defined in your environment
+        return local_model.encode(texts, convert_to_tensor=True)
+    
+    # Use the OpenAI API for GPT_small or GPT_large
+    elif name == "GPT_small":
+        response = client.embeddings.create(
+            input=texts,
+            model="text-embedding-3-small"
+        )
+        return [item.embedding for item in response.data]
+    
+    elif name == "GPT_large":
+        response = client.embeddings.create(
+            input=texts,
+            model="text-embedding-3-large"
+        )
+        return [item.embedding for item in response.data]
+    
+    # If name is none of the expected values, raise an error
+    else:
+        raise ValueError("Invalid name parameter. Must be 'Local', 'GPT_small', or 'GPT_large'.")
 
 
-# Load model and cached data
-model = SentenceTransformer(NAME_MODEL_EMBEDDING)
-main_chunks, embedding_cache = load_chunks_and_embeddings()
+
+def find_relevant_subchunks(query_embedding: list, data: dict, top_k: int = 3, context_size: int = 2) -> str:
+    # Extract all subchunks
+    all_subchunks = []
+    for chunk in data["chunks"]:
+        for subchunk in chunk["subchunks"]:
+            all_subchunks.append({
+                "chunk_id": chunk["chunk_id"],
+                "subchunk_id": subchunk["subchunk_id"],
+                "text": subchunk["text"],
+                "embedding": subchunk["embedding"]
+            })
+
+    # Prepare embeddings array
+    embeddings = np.array([np.array(s["embedding"]).flatten() for s in all_subchunks]).astype('float32')
+
+    # Normalize embeddings for cosine similarity
+    faiss.normalize_L2(embeddings)
+
+    # Create FAISS index
+    index = faiss.IndexFlatIP(embeddings.shape[1])  # Inner product for cosine similarity
+    index.add(embeddings)
+
+    # Prepare query embedding
+    query_embedding = np.array(query_embedding).flatten().astype('float32').reshape(1, -1)
+    faiss.normalize_L2(query_embedding)
+
+    # Search with FAISS
+    distances, indices = index.search(query_embedding, top_k)
+    top_indices = indices[0]  # FAISS returns results in descending order of similarity
+    print(top_indices)
+
+    # Collect context around top results
+    relevant_subchunks = []
+    for idx in top_indices:
+        start = max(0, idx - context_size)
+        end = min(len(all_subchunks), idx + context_size + 1)
+        relevant_subchunks.extend(all_subchunks[start:end])
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_subchunks = []
+    for s in relevant_subchunks:
+        key = (s["chunk_id"], s["subchunk_id"])
+        if key not in seen:
+            seen.add(key)
+            unique_subchunks.append(s)
+
+    # Sort by chunk and subchunk IDs
+    unique_subchunks.sort(key=lambda x: (x["chunk_id"], x["subchunk_id"]))
+    relevant_text = ""
+    for res in unique_subchunks:
+        relevant_text += res['text']
+
+    first_period_idx = relevant_text.find('.')
+    last_period_idx = relevant_text.rfind('.')
+    if first_period_idx != -1 and last_period_idx != -1 and first_period_idx <= last_period_idx:
+        relevant_text = relevant_text[first_period_idx: last_period_idx + 1].strip()
+    else:
+        relevant_text = relevant_text
+
+    return relevant_text
+
+
+def find_top_k_chunks(query: str, top_k: int = 3,embeder_name:str = "GPT_large") -> List[dict]:
+
+    if embeder_name == "Local":
+        data = load_chunks_and_embeddings(CACHE_JSON_LOCAL_MODEL)
+
+    query_embedding = get_gpt_embedding(query)
+
+    relevant_text = find_relevant_subchunks(query_embedding, data,top_k)
+
+
+
+
+# Initialize the OpenAI client once for API-based embeddings.
+client = openai.OpenAI(
+    api_key="aa-N7QvBs4uwSsEMRWzb1UUCr0jqlSYhknZaKtsNciBRcSGeOgh",
+    base_url="https://api.avalai.ir/v1"
+)
+# Load local_model and cached openaidata
+local_model = SentenceTransformer(NAME_MODEL_EMBEDDING)
+# main_chunks, embedding_cache = load_chunks_and_embeddings()

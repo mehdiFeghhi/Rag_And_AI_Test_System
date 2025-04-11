@@ -108,3 +108,7 @@ for_testing_code.ipynb
 
 # ---Json Specefice to me ----
 embeddings_large.json
+embeddings_BioSimCSE_BioLinkBERT_BASE.ipynb
+embeddings_BioSimCSE.json
+embeddings_small.json
+for_testing_code.ipynb
