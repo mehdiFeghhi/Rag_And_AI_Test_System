@@ -19,7 +19,7 @@
     header {
       background: #2196f3;
       color: #fff;
-      padding: 1.2rem 2rem;
+      padding: 1rem 1.5rem;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -29,16 +29,16 @@
     }
     header nav {
       position: absolute;
-      left: 2rem;
+      left: 1.5rem;
       top: 50%;
       transform: translateY(-50%);
     }
     header nav a {
       color: #f8f9fa;
       text-decoration: none;
-      margin-right: 1.2rem;
+      margin-right: 1rem;
       font-weight: bold;
-      padding: 0.7rem 1.5rem;
+      padding: 0.6rem 1.2rem;
       border-radius: 0.3rem;
       background-color: rgba(255, 255, 255, 0.15);
       transition: background-color 0.3s ease;
@@ -60,11 +60,6 @@
       margin: 0 auto;
       overflow-y: auto;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      animation: fadeIn 0.4s ease; /* subtle fade in effect */
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
     }
     .section {
       margin-bottom: 1.8rem;
@@ -88,12 +83,12 @@
       background: #f0f8ff;
       border: 1px solid #e0f2f7;
       border-radius: 0.4rem;
+      white-space: pre-wrap;
       line-height: 1.6;
     }
     .back-link {
       display: block;
-      margin: 1.5rem auto;
-      width: max-content;
+      margin-top: 1.5rem;
       color: #1976d2;
       text-decoration: none;
       font-weight: bold;
@@ -103,20 +98,24 @@
       text-decoration: underline;
       color: #0d47a1;
     }
-    .loading-detail,
+    .loading-detail {
+      text-align: center;
+      color: #1976d2;
+      padding: 1.5rem 0;
+      font-size: 1.1rem;
+    }
     .error-message {
+      color: #dc3545;
       text-align: center;
       padding: 1.5rem 0;
       font-size: 1.1rem;
     }
-    .loading-detail { color: #1976d2; }
-    .error-message { color: #dc3545; }
     .no-results {
       color: #757575;
       font-style: italic;
       padding-top: 0.5rem;
     }
-    
+
     /* Responsive Design */
     @media (max-width: 768px) {
       header {
@@ -148,6 +147,7 @@
         font-size: 0.95rem;
       }
     }
+
     @media (max-width: 576px) {
       header h1 {
         font-size: 1.8rem;
@@ -169,7 +169,7 @@
 </head>
 <body>
   <header>
-    <nav aria-label="Main Navigation">
+    <nav>
       <a href="/dashboard">New Chat</a>
       <a href="/chats_page">Chat History</a>
     </nav>
@@ -183,8 +183,9 @@
   <a href="/chats_page" class="back-link">Back to Chat History</a>
 
   <script>
-    // Helper function to set text direction based on content
+    // Helper function to set text direction depending on content
     function setTextDirection(element, text) {
+      // Check for Persian characters (Unicode Arabic/Persian range)
       if (/[\u0600-\u06FF]/.test(text)) {
         element.dir = "rtl";
         element.style.textAlign = "right";
@@ -196,7 +197,7 @@
 
     async function loadChatDetail() {
       const pathSegments = window.location.pathname.split('/');
-      const chatId = pathSegments[pathSegments.length - 1];
+      const chatId = pathSegments[pathSegments.length - 1]; // Get the last segment
       if (!chatId) {
         document.getElementById('chatDetail').innerHTML = '<p class="error-message">Error: No chat ID provided.</p>';
         return;
@@ -217,52 +218,42 @@
       const container = document.getElementById('chatDetail');
       container.innerHTML = '';
 
-      // Helper to safely assign HTML (if you trust the source, or replace with a sanitizer)
-      const assignHTML = (element, htmlContent) => {
-        element.innerHTML = htmlContent;
-        setTextDirection(element, element.textContent);
-      };
-
-      // Query Section
+      // Display basic chat information (Query and Timestamp)
       const infoDiv = document.createElement('div');
       infoDiv.classList.add('section');
-      
+      // Query message
       const queryTitle = document.createElement('h2');
       queryTitle.textContent = 'Query';
       infoDiv.appendChild(queryTitle);
-      
       const queryMsg = document.createElement('div');
       queryMsg.classList.add('message');
-      assignHTML(queryMsg, chat.query);
+      queryMsg.textContent = chat.query;
+      setTextDirection(queryMsg, chat.query);
       infoDiv.appendChild(queryMsg);
-      
-      // Timestamp Section
+      // Timestamp message
       const timestampTitle = document.createElement('h2');
       timestampTitle.textContent = 'Timestamp';
       infoDiv.appendChild(timestampTitle);
-      
       const timestampMsg = document.createElement('div');
       timestampMsg.classList.add('message');
-      const tsText = new Date(chat.timestamp).toLocaleString();
-      assignHTML(timestampMsg, tsText);
+      timestampMsg.textContent = new Date(chat.timestamp).toLocaleString();
+      setTextDirection(timestampMsg, timestampMsg.textContent);
       infoDiv.appendChild(timestampMsg);
-      
       container.appendChild(infoDiv);
 
-      // Retrieval Results Section
+      // Display retrieval results
       const retrievalDiv = document.createElement('div');
       retrievalDiv.classList.add('section');
-      
       const retrievalTitle = document.createElement('h2');
       retrievalTitle.textContent = 'Retrieval Results';
       retrievalDiv.appendChild(retrievalTitle);
-      
       if (chat.retrieval_results && chat.retrieval_results.length > 0) {
         chat.retrieval_results.forEach(result => {
-          const resultMsg = document.createElement('div');
-          resultMsg.classList.add('message');
-          assignHTML(resultMsg, result);
-          retrievalDiv.appendChild(resultMsg);
+          const msg = document.createElement('div');
+          msg.classList.add('message');
+          msg.textContent = result;
+          setTextDirection(msg, result);
+          retrievalDiv.appendChild(msg);
         });
       } else {
         const noResults = document.createElement('p');
@@ -272,22 +263,21 @@
       }
       container.appendChild(retrievalDiv);
 
-      // Main AI Response Section
+      // Display main AI response
       const mainDiv = document.createElement('div');
       mainDiv.classList.add('section');
-      
       const mainTitle = document.createElement('h2');
       mainTitle.textContent = 'Main AI Response';
       mainDiv.appendChild(mainTitle);
-      
       const mainMsg = document.createElement('div');
       mainMsg.classList.add('message');
-      assignHTML(mainMsg, chat.main_result);
+      mainMsg.textContent = chat.main_result;
+      setTextDirection(mainMsg, chat.main_result);
       mainDiv.appendChild(mainMsg);
-      
       container.appendChild(mainDiv);
     }
 
+    // Load chat details on page load
     window.addEventListener('DOMContentLoaded', loadChatDetail);
   </script>
 </body>

@@ -137,6 +137,85 @@
         height: 60%;
       }
     }
+
+    /* Markdown Styling */
+    .retrieval-results div,
+    .main-result div {
+      line-height: 1.6;
+    }
+    .message-row:not(.user) .message-content[style*="direction: rtl"] {
+      margin-left: auto;
+      margin-right: 0;
+      word-wrap: break-word;
+      direction: rtl;
+    }
+    .retrieval-results strong,
+    .main-result strong {
+      font-weight: bold;
+    }
+    .retrieval-results em,
+    .main-result em {
+      font-style: italic;
+    }
+    .retrieval-results pre,
+    .main-result pre {
+      background-color: #272822;
+      color: #f8f8f2;
+      padding: 10px;
+      overflow-x: auto;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .retrieval-results code,
+    .main-result code {
+      font-family: 'Courier New', Courier, monospace;
+      background: #f4f4f4;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    /* New styles for message row and avatar */
+    .message-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    /* When user sends the message, display avatar on right */
+    .message-row.user {
+      flex-direction: row-reverse;
+    }
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #fff;
+      margin: 0 10px;
+      flex-shrink: 0;
+    }
+    .avatar.user {
+      background-color:#6c757d;
+    }
+    .avatar.model {
+      background-color: #28a745;
+    }
+    .message-content {
+      padding: 10px;
+      max-width: 80%;
+      background: #f0f0f0;
+      border-radius: 5px;
+    }
+    /* Adjust border radius based on sender */
+    .message-row.user .message-content {
+      border-radius: 10px 0 10px 10px;
+    }
+    .message-row:not(.user) .message-content {
+      border-radius: 0 10px 10px 10px;
+      background-color:#cef5d7;
+    }
   </style>
 </head>
 <body>
@@ -144,27 +223,27 @@
     <span>AI Chat Dashboard</span>
     <div>
       <a href="chats_page">View Chats</a>
-      <a href="dashboard">Reload</a> </div>
+      <a href="dashboard">Reload</a>
+    </div>
   </header>
   <div class="chat-container">
     <div class="retrieval-panel">
       <div class="retrieval-header">Retrieval Results</div>
-      <div class="retrieval-results" id="retrievalResults">
-        </div>
+      <div class="retrieval-results" id="retrievalResults"></div>
     </div>
     <div class="main-panel">
       <div class="main-header">AI Response</div>
-      <div class="main-result" id="mainResult">
-        </div>
+      <div class="main-result" id="mainResult"></div>
     </div>
   </div>
   <div class="chat-input-container">
     <div class="chat-input-row">
       <input type="text" id="userInput" placeholder="Type your message here..." />
-      <input type="number" id="topKInput" placeholder="Top K" min="1" value="3" />
+      <input type="number" id="topKInput" placeholder="Top K" min="0" value="3" />
     </div>
     <button id="sendButton">Send</button>
   </div>
+
   <script>
     // Event listeners for chat input
     document.getElementById('sendButton').addEventListener('click', sendChat);
@@ -176,59 +255,85 @@
       const inputField = document.getElementById('userInput');
       const topKField = document.getElementById('topKInput');
       const message = inputField.value.trim();
-      const top_k = parseInt(topKField.value) || 3;
+      const top_k = Math.max(0, topKField.value === '' ? 0 : parseInt(topKField.value));
       if (!message) return;
 
-      // Clear previous chat messages from both panels
+      // Clear previous chat messages
       document.getElementById('mainResult').innerHTML = '';
       document.getElementById('retrievalResults').innerHTML = '';
 
-      // Append the user's message to the main panel
-      appendMessage('You: ' + message, 'main');
+      // Append user's query with avatar
+      appendMessage(message, 'main', 'user');
 
-      // Clear the input field
       inputField.value = '';
 
       try {
-        // Call your chat API endpoint
         const response = await fetch('/chat', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ query: message, top_k: top_k })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: message, top_k })
         });
-        if (!response.ok) {
-          throw new Error('API call failed with status ' + response.status);
-        }
+        if (!response.ok) throw new Error('API call failed with status ' + response.status);
         const data = await response.json();
 
-        // Data contains retrieval (list) and main (string)
         if (data.retrieval) {
-          data.retrieval.forEach(result => {
-            appendMessage(result, 'retrieval');
-          });
+          data.retrieval.forEach(result => appendMessage(result, 'retrieval'));
         }
         if (data.main) {
-          appendMessage(data.main, 'main');
+          appendMessage(data.main, 'main', 'model');
         }
       } catch (error) {
         console.error('Error:', error);
-        appendMessage('Error: ' + error.message, 'main');
+        appendMessage('Error: ' + error.message, 'main', 'model');
       }
     }
 
-    function appendMessage(message, panel) {
-      let panelId = panel === 'retrieval' ? 'retrievalResults' : 'mainResult';
+    // Check if the text contains Farsi/Persian characters
+    function isFarsi(text) {
+      return /[\u0600-\u06FF]/.test(text);
+    }
+
+    // sender can be 'user' or 'model'
+    function appendMessage(message, panel, sender) {
+      const panelId = panel === 'retrieval' ? 'retrievalResults' : 'mainResult';
       const container = document.getElementById(panelId);
-      const messageElem = document.createElement('div');
-      messageElem.style.marginBottom = '10px';
-      messageElem.style.padding = '10px';
-      messageElem.style.background = '#f0f0f0';
-      messageElem.style.borderRadius = '4px';
-      messageElem.textContent = message;
-      container.appendChild(messageElem);
-      // Auto-scroll to the bottom
+
+      // If sender is provided, create a structured message row with an avatar.
+      if (sender === 'user' || sender === 'model') {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'message-row';
+        if (sender === 'user') {
+          rowDiv.classList.add('user');
+        }
+        // Create avatar element
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'avatar ' + sender;
+        avatarDiv.innerText = sender === 'user' ? 'U' : 'M';
+        rowDiv.appendChild(avatarDiv);
+
+        // Create message content element
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message-content';
+        // Adjust text direction and alignment based on language
+        messageDiv.style.direction = isFarsi(message) ? 'rtl' : 'ltr';
+        messageDiv.style.textAlign = isFarsi(message) ? 'right' : 'left';
+        messageDiv.innerHTML = message;
+        rowDiv.appendChild(messageDiv);
+
+        container.appendChild(rowDiv);
+      } else {
+        // Fallback for messages without sender (retrieval messages)
+        const messageDiv = document.createElement('div');
+        messageDiv.style.marginBottom = '10px';
+        messageDiv.style.padding = '10px';
+        messageDiv.style.background = '#f0f0f0';
+        messageDiv.style.borderRadius = '5px';
+        // Adjust text alignment based on language
+        messageDiv.style.textAlign = isFarsi(message) ? 'right' : 'left';
+        messageDiv.style.direction = isFarsi(message) ? 'rtl' : 'ltr';
+        messageDiv.innerHTML = message;
+        container.appendChild(messageDiv);
+      }
       container.scrollTop = container.scrollHeight;
     }
   </script>
