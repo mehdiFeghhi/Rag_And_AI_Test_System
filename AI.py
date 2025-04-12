@@ -8,7 +8,7 @@ from langchain_openai import ChatOpenAI
 
 # Choose your model here: "gpt-4" or "gpt-4-turbo"
 # DEFAULT_MODEL = "gpt-4o-mini"
-
+DEFAULT_MODEL = "gpt-4o"
 
 def generate_translate_model_response(text: str, destination: str) -> str:
     """
