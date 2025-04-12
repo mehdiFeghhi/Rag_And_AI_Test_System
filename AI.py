@@ -4,9 +4,10 @@ from utils import preprocess_md_to_html,check_persian
 import json
 import re
 # Initialize OpenAI with your API key
+from langchain_openai import ChatOpenAI 
 
 # Choose your model here: "gpt-4" or "gpt-4-turbo"
-DEFAULT_MODEL = "gpt-4o-mini"
+# DEFAULT_MODEL = "gpt-4o-mini"
 
 
 def generate_translate_model_response(text: str, destination: str) -> str:
@@ -69,7 +70,7 @@ def generate_medical_model_response(user_query: str, retrieved_chunks: List[str]
     if len(retrieved_chunks) != 0:
         system_prompt = (
             "You are an expert medical assistant, specifically a specialist in dentistry. Use the provided context to answer the user's query as helpfully and accurately as possible. "
-            "Only answer if the query is directly related to medical topics. If the query is not dental, politely inform the user that you only handle dental-related queries."
+            "Only answer if the query is directly related to medical topics. If the query is not medical, politely inform the user that you only handle medical-related queries."
         )
         
         context = "\n\n".join(retrieved_chunks)

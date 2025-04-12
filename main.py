@@ -1,12 +1,13 @@
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from retrieval import find_top_k_chunks, load_chunks_and_embeddings
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse,RedirectResponse
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from fastapi.security import OAuth2PasswordRequestForm
-from starlette.status import HTTP_302_FOUND
+from starlette.status import HTTP_302_FOUND,HTTP_401_UNAUTHORIZED
 from pydantic import BaseModel
 from AI import generate_chat_response
+from fastapi.exceptions import RequestValidationError
 
 from datetime import datetime, timezone
 # from fastapi.staticfiles import StaticFiles  # Import StaticFiles
@@ -18,18 +19,18 @@ from security.auth import create_access_token, get_current_user
 
 
 # Initialize placeholders
-main_chunks = None
-embedding_cache = None
+# main_chunks = None
+# embedding_cache = None
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """App lifespan: load model and embeddings at startup."""
-    global main_chunks, embedding_cache
-    main_chunks, embedding_cache = load_chunks_and_embeddings()
-    if not main_chunks or not embedding_cache:
-        raise RuntimeError("Failed to load chunks or local embeddings.")
-    yield  # Application is running
-    # Optional: Add teardown/cleanup logic here
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     """App lifespan: load model and embeddings at startup."""
+#     global main_chunks, embedding_cache
+#     main_chunks, embedding_cache = load_chunks_and_embeddings()
+#     if not main_chunks or not embedding_cache:
+#         raise RuntimeError("Failed to load chunks or local embeddings.")
+#     yield  # Application is running
+#     # Optional: Add teardown/cleanup logic here
 
 
 app = FastAPI()
@@ -39,6 +40,17 @@ templates = Jinja2Templates(directory="templates")
 # Login and Dashboard Routes
 # ---------------------------
 
+
+
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    if exc.status_code == HTTP_401_UNAUTHORIZED:
+        # Token is expired or invalid → redirect to login
+        return RedirectResponse(url="/", status_code=HTTP_302_FOUND)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
 
 @app.get("/", response_class=HTMLResponse)
 async def login_form(request: Request):
@@ -90,7 +102,7 @@ async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_u
     """
     Chat endpoint using real semantic retrieval and GPT-4 LLM generation.
     """
-    
+    print(request.embeder_name)
     try:
         
         if request.top_k > 0:

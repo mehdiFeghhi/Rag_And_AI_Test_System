@@ -8,6 +8,9 @@ CACHE_FILE = ""
 CACHE_JSON_LOCAL_MODEL = ""
 CACHE_JSON_GPT_LARGE = ""
 CACHE_JSON_GPT_SMALL = ""
+EMBEDER_KEY = ""
+
+
 NAME_MODEL_EMBEDDING = ""
 
 from passlib.context import CryptContext
