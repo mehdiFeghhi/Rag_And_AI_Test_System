@@ -150,7 +150,7 @@ def find_relevant_subchunks(
 # Main Interface
 # -------------------------------
 
-def find_top_k_chunks(query: str, top_k: int = 3, embeder_name: str = "GPT_large") -> List[dict]:
+def find_top_k_chunks(query: str, top_k: int = 3, embeder_name: str = "GPT_large", flage_translate:bool = True) -> List[dict]:
     """
     Main entry to search for relevant chunks given a query.
     """

@@ -102,7 +102,7 @@ def generate_medical_model_response(user_query: str, retrieved_chunks: List[str]
 
 
 
-def generate_chat_response(user_query: str, retrieved_chunks: List[str], model_name: str = DEFAULT_MODEL) -> str:
+def generate_chat_response(user_query: str, retrieved_chunks: List[str], model_name: str = DEFAULT_MODEL, flage_translate: bool = True) -> str:
 
         if check_persian(user_query):
             user_query = generate_translate_model_response(text=user_query,destination="eng")             
@@ -111,9 +111,13 @@ def generate_chat_response(user_query: str, retrieved_chunks: List[str], model_n
 
             res_chat_gpt = generate_medical_model_response(user_query,retrieved_chunks,model_name)
             
-            persian_chat_gpt_res = generate_translate_model_response(text=res_chat_gpt,destination="fa")
-            
-            return preprocess_md_to_html(persian_chat_gpt_res,model_name=model_name)
+            if flage_translate:
+                    persian_chat_gpt_res = generate_translate_model_response(text=res_chat_gpt,destination="fa")
+                    return preprocess_md_to_html(persian_chat_gpt_res,model_name=model_name)
+
+            else:
+
+                    return preprocess_md_to_html(res_chat_gpt,model_name=model_name)
 
         
         except Exception as e:

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>AI Chat Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
   <style>
     /* Reset & Base Styles */
     * {
@@ -79,6 +79,7 @@
       font-weight: bold;
     }
     .main-result {
+      position: relative;
       flex: 1;
       overflow-y: auto;
       padding: 15px;
@@ -226,7 +227,10 @@
       border-radius: 0 10px 10px 10px;
       background-color: #cef5d7;
     }
+  
   </style>
+  <!-- <link rel="stylesheet" type="text/css" href="/mainfirstcss"> -->
+  <link rel="stylesheet" href="/static/assets/css/chatgpt/custom.css">
 </head>
 <body>
   <header>
@@ -243,11 +247,13 @@
     </div>
     <div class="main-panel">
       <div class="main-header">AI Response</div>
-      <div class="main-result" id="mainResult"></div>
+      <div class="main-result" id="mainResult">
+      </div>
     </div>
   </div>
   <div class="chat-input-container">
     <!-- New dropdown for embeder choice -->
+     
     <div class="chat-input-row">
       <select id="embederSelect">
         <option value="">Select embedder (default is GPT large)</option>
@@ -255,13 +261,20 @@
         <option value="GPT_large">GPT large</option>
         <option value="GPT_small">GPT small</option>
       </select>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <label for="faCheckbox" style="font-size: 14px;">fa</label>
+        <input type="checkbox" id="faCheckbox" />
+      </div>
     </div>
     <div class="chat-input-row">
       <input type="text" id="userInput" placeholder="Type your message here..." />
       <input type="number" id="topKInput" placeholder="Top K" min="0" value="3" />
     </div>
+    
+    
     <button id="sendButton">Send</button>
   </div>
+
 
   <script>
     // Event listeners for chat input
@@ -270,22 +283,34 @@
       if (e.key === 'Enter') sendChat();
     });
 
+    function removeLoading(){
+      debugger;
+      const panelId = 'message-row';
+      const container = document.getElementsByClassName(panelId)[0];
+      container.removeChild(document.getElementById("loadingImage"));
+    }
+
     async function sendChat() {
+     
       const inputField = document.getElementById('userInput');
       const topKField = document.getElementById('topKInput');
       const embedderSelect = document.getElementById('embederSelect');
+      const faCheckbox      = document.getElementById('faCheckbox');
+
+
       const message = inputField.value.trim();
       const top_k = Math.max(0, topKField.value === '' ? 0 : parseInt(topKField.value));
       // If embedder is not selected, default to "GPT large"
       const embeder_name = embedderSelect.value.trim() || "GPT_large";
-
+      const answer_in_persian   = faCheckbox.checked;
+      
       if (!message) return;
 
       // Clear previous chat messages
       document.getElementById('mainResult').innerHTML = '';
       document.getElementById('retrievalResults').innerHTML = '';
 
-      // Append user's query with avatar
+      // Append user's query wisendChatth avatar
       appendMessage(message, 'main', 'user');
 
       inputField.value = '';
@@ -294,7 +319,7 @@
         const response = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: message, top_k, embeder_name })
+          body: JSON.stringify({ query: message, top_k, embeder_name, answer_in_persian})
         });
         if (!response.ok) throw new Error('API call failed with status ' + response.status);
         const data = await response.json();
@@ -305,6 +330,7 @@
         if (data.main) {
           appendMessage(data.main, 'main', 'model');
         }
+        
       } catch (error) {
         console.error('Error:', error);
         appendMessage('Error: ' + error.message, 'main', 'model');
@@ -315,9 +341,9 @@
     function isFarsi(text) {
       return /[\u0600-\u06FF]/.test(text);
     }
-
     // sender can be 'user' or 'model'
     function appendMessage(message, panel, sender) {
+      debugger;
       const panelId = panel === 'retrieval' ? 'retrievalResults' : 'mainResult';
       const container = document.getElementById(panelId);
 
@@ -342,9 +368,28 @@
         messageDiv.style.textAlign = isFarsi(message) ? 'right' : 'left';
         messageDiv.innerHTML = message;
         rowDiv.appendChild(messageDiv);
-
-        container.appendChild(rowDiv);
+        if(sender === 'user' ){
+          let img = document.createElement('img');
+          img.id = "loadingImage";
+          img.src = "/static/assets/img/loading.gif";
+          img.style.width = "50px";
+          img.style.height = "50px";
+          img.style.position = "absolute"; 
+          img.style.top = "calc(50% - 25px)";
+          img.style.left = "calc(50% - 25px)";
+          img.style.transform = "translate(-50%, -50%)";
+          img.style.zIndex = "9999";
+          img.style.display = "block";
+          img.style.margin = "auto";  
+          rowDiv.appendChild(img);
+          container.appendChild(rowDiv);
+        }else{
+          removeLoading();
+          container.appendChild(rowDiv);
+        }
+        
       } else {
+        
         // Fallback for messages without sender (retrieval messages)
         const messageDiv = document.createElement('div');
         messageDiv.style.marginBottom = '10px';
@@ -359,6 +404,8 @@
       }
       container.scrollTop = container.scrollHeight;
     }
+
+   
   </script>
 </body>
 </html>

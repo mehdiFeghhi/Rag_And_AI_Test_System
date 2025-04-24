@@ -10,7 +10,7 @@ from AI import generate_chat_response
 from fastapi.exceptions import RequestValidationError
 
 from datetime import datetime, timezone
-# from fastapi.staticfiles import StaticFiles  # Import StaticFiles
+from fastapi.staticfiles import StaticFiles  # Import StaticFiles
 
 from bson import ObjectId
 from db import chat_collection
@@ -35,7 +35,7 @@ from security.auth import create_access_token, get_current_user
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-# app.mount("/static", StaticFiles(directory="templates"), name="static")
+app.mount("/static", StaticFiles(directory="templates"), name="static")
 # ---------------------------
 # Login and Dashboard Routes
 # ---------------------------
@@ -71,6 +71,11 @@ async def dashboard(request: Request, user: dict = Depends(get_current_user)):
     return templates.TemplateResponse("dashboard.html", {"request": request, "user": user["username"]})
 
 
+@app.get("/mainfirstcss", response_class=HTMLResponse)
+async def dashboard(request: Request, user: dict = Depends(get_current_user)):
+    return templates.TemplateResponse("assets/css/chatgpt/mainFirst.css", {"request": request, "user": user["username"]})
+
+
 @app.get("/chats_page", response_class=HTMLResponse)
 async def chats_page(request: Request, user: dict = Depends(get_current_user)):
     return templates.TemplateResponse("chats.html", {"request": request})
@@ -96,6 +101,7 @@ class ChatRequest(BaseModel):
     query: str
     top_k: int = 3  # Default number of retrieval results
     embeder_name: str = "GPT_large"
+    answer_in_persian: bool = True
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_user)):
@@ -114,7 +120,7 @@ async def chat_endpoint(request: ChatRequest, user: dict = Depends(get_current_u
         # print(retrieval_results)
 
         # 🔥 Generate a real LLM-based response
-        main_result = generate_chat_response(request.query, retrieval_results)
+        main_result = generate_chat_response(request.query, retrieval_results,flage_translate = request.answer_in_persian)
 
         print(main_result)
 
