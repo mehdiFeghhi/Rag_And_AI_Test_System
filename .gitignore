@@ -112,3 +112,6 @@ embeddings_BioSimCSE_BioLinkBERT_BASE.ipynb
 embeddings_BioSimCSE.json
 embeddings_small.json
 for_testing_code.ipynb
+embeddings_BioSimCSE_V2.json
+embeddings_large_V2.json
+embeddings_small_V2.json
